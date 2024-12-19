@@ -45,7 +45,7 @@ function getBlockAverageColor(
 }
 
 /**
- * 计算
+ * 计算主色调
  * @param imgUrl 图片地址
  * @param canvasSize canvas大小
  * @returns color: 主色调, url: 图片url

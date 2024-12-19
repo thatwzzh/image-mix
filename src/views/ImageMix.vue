@@ -17,7 +17,7 @@
         <button @click="uploadMaterial">选择素材</button>
         <button @click="resetMaterials">重置素材</button>
       </div>
-      <div>共选择{{ imgList.length }}个素材</div>
+      <div>共选择{{ materialList.length }}个素材</div>
       <button @click="generateImg" :disabled="generating">生成图片</button>
       <button @click="exportImg">导出图片</button>
       <div>
@@ -58,7 +58,7 @@ const ctx = ref()
 /**
  * 图片列表
  */
-const imgList = ref<IFileObj[]>([])
+const materialList = ref<IFileObj[]>([])
 /**
  * 像素块列表
  */
@@ -154,7 +154,7 @@ const uploadMaterial = async () => {
     })
     for (let i = 0; i < files.length; i++) {
       getAverageColor(files[i]).then((image) => {
-        imgList.value.push(image)
+        materialList.value.push(image)
       })
     }
   } catch (error) {
@@ -165,6 +165,7 @@ const uploadMaterial = async () => {
  * 重置目标图片
  */
 const resetTarget = () => {
+  selectedUrl.value = ''
   canvas.value.dispose().then(() => {
     initCanvas()
   })
@@ -173,7 +174,7 @@ const resetTarget = () => {
  * 重置素材图片
  */
 const resetMaterials = () => {
-  imgList.value = []
+  materialList.value = []
 }
 /**
  * 计算颜色差异
@@ -204,11 +205,11 @@ const generateImg = async () => {
         materialColor: [0, 0, 0, 0], // 素材颜色
       }
       const diffs = [] // 存储像素块与素材图片的颜色差异
-      for (let j = 0; j < imgList.value.length; j++) {
+      for (let j = 0; j < materialList.value.length; j++) {
         diffs.push({
-          url: imgList.value[j].url,
-          diff: colorDiff(block.color, imgList.value[j].color),
-          color: imgList.value[j].color,
+          url: materialList.value[j].url,
+          diff: colorDiff(block.color, materialList.value[j].color),
+          color: materialList.value[j].color,
         })
       }
       //对比较过的图片进行排序,差异最小的放最前面
