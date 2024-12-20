@@ -56,7 +56,7 @@ const canvas = ref()
  */
 const ctx = ref()
 /**
- * 图片列表
+ * 素材列表
  */
 const materialList = ref<IFileObj[]>([])
 /**
@@ -161,6 +161,7 @@ const uploadMaterial = async () => {
     console.error(error)
   }
 }
+
 /**
  * 重置目标图片
  */
@@ -194,49 +195,19 @@ const colorDiff = (color1: number[], color2: number[]) => {
 const generateImg = async () => {
   resetTarget()
   generating.value = true
-  const diffColorList: IDiffItem[] = [] // 存储每个像素块的颜色差异
+  // 存储每个像素块的颜色差异
+  const diffColorList: IDiffItem[] = []
   try {
     for (let i = 0; i < blockList.value.length; i++) {
       const block = blockList.value[i]
-      diffColorList[i] = {
-        position: block.position, // 位置信息
-        url: '', // 图片url
-        targetColor: [0, 0, 0, 0], // 目标颜色
-        materialColor: [0, 0, 0, 0], // 素材颜色
-      }
-      const diffs = [] // 存储像素块与素材图片的颜色差异
-      for (let j = 0; j < materialList.value.length; j++) {
-        diffs.push({
-          url: materialList.value[j].url,
-          diff: colorDiff(block.color, materialList.value[j].color),
-          color: materialList.value[j].color,
-        })
-      }
-      //对比较过的图片进行排序,差异最小的放最前面
-      diffs.sort((a, b) => a.diff - b.diff)
-      const material = diffs[0] // 取差异最小的素材图片
-      diffColorList[i].url = material.url
-      diffColorList[i].targetColor = block.color
-      diffColorList[i].materialColor = material.color
-      FabricImage.fromURL(material.url).then((img) => {
-        const scale = img.height > img.width ? blockPixel / img.width : blockPixel / img.height
-        img.set({
-          left: block.position[0] * blockPixel,
-          top: block.position[1] * blockPixel,
-          width: blockPixel / scale,
-          height: blockPixel / scale,
-          scaleX: scale,
-          scaleY: scale,
-          selectable: true,
-          lockMovementX: true,
-          lockMovementY: true,
-        })
-        // 展示选中图片
-        img.on('selected', () => {
-          selectedUrl.value = material.url
-        })
-        canvas.value.add(img)
-      })
+      // 计算颜色差异
+      const diffs = calculateColorDifferences(block)
+      // 获取颜色差异最小的素材
+      const material = diffs[0]
+      // 创建差异项
+      diffColorList[i] = createDiffItem(block, material)
+      // 添加图片到画布
+      addImageToCanvas(material, block)
     }
     blockInfoList.value = diffColorList
   } catch (error) {
@@ -244,6 +215,54 @@ const generateImg = async () => {
   } finally {
     generating.value = false
   }
+}
+/**
+ * 计算颜色差异并排序
+ * @param block 目标像素块
+ */
+const calculateColorDifferences = (block: IBlock) => {
+  return materialList.value
+    .map((img) => ({
+      url: img.url,
+      diff: colorDiff(block.color, img.color),
+      color: img.color,
+    }))
+    .sort((a, b) => a.diff - b.diff)
+}
+/**
+ * 创建差异项
+ * @param block 目标像素块
+ * @param material 素材
+ */
+const createDiffItem = (block: IBlock, material: IFileObj) => ({
+  position: block.position,
+  url: material.url,
+  targetColor: block.color,
+  materialColor: material.color,
+})
+/**
+ * 添加图片到画布
+ * @param material 素材
+ * @param block 目标像素块
+ */
+const addImageToCanvas = async (material: IFileObj, block: IBlock) => {
+  const img = await FabricImage.fromURL(material.url)
+  const scale = img.height > img.width ? blockPixel / img.width : blockPixel / img.height
+  img.set({
+    left: block.position[0] * blockPixel,
+    top: block.position[1] * blockPixel,
+    width: blockPixel / scale,
+    height: blockPixel / scale,
+    scaleX: scale,
+    scaleY: scale,
+    selectable: true,
+    lockMovementX: true,
+    lockMovementY: true,
+  })
+  img.on('selected', () => {
+    selectedUrl.value = material.url
+  })
+  canvas.value.add(img)
 }
 /**
  * 导出图片
