@@ -6,7 +6,6 @@
         :width="blockPixel * blockCount"
         :height="blockPixel * blockCount"
       ></canvas>
-      <div class="generating" v-if="generating">生成中。。。</div>
     </div>
     <div class="operator">
       <div class="flex">
@@ -18,12 +17,6 @@
         <button @click="resetMaterials">重置素材</button>
       </div>
       <div>共选择{{ materialList.length }}个素材</div>
-      <button @click="generateImg" :disabled="generating">生成图片</button>
-      <button @click="exportImg">导出图片</button>
-      <div>
-        当前选中：
-        <img v-if="selectedUrl" :src="selectedUrl" alt="当前选中" width="200" />
-      </div>
     </div>
   </div>
 </template>
@@ -32,7 +25,7 @@ import { onMounted, ref } from 'vue'
 import { Canvas, FabricImage } from 'fabric'
 import { useInputFiles } from '@/hooks/useInputFiles'
 import { getBlockAverageColor, getAverageColor } from '@/utils/averageColor'
-import type { IFileObj, IBlock, IDiffItem } from '@/types/common'
+import type { IFileObj, IBlock } from '@/types/common'
 
 /**
  * 像素块大小
@@ -42,11 +35,6 @@ const blockPixel = 6
  * 画布分为100*100个像素块
  */
 const blockCount = 100
-
-/**
- * 是否正在生成
- */
-const generating = ref(false)
 /**
  * canvas实例
  */
@@ -63,14 +51,6 @@ const materialList = ref<IFileObj[]>([])
  * 像素块列表
  */
 const blockList = ref<IBlock[]>([])
-/**
- * 像素块信息列表
- */
-const blockInfoList = ref<IDiffItem[]>([])
-/**
- * 当前选中的图片
- */
-const selectedUrl = ref('')
 
 const { uploadFiles } = useInputFiles()
 
@@ -157,6 +137,7 @@ const uploadMaterial = async () => {
         materialList.value.push(image)
       })
     }
+    console.log("🚀 ~ getAverageColor ~ materialList.value:", materialList.value)
   } catch (error) {
     console.error(error)
   }
@@ -166,7 +147,6 @@ const uploadMaterial = async () => {
  * 重置目标图片
  */
 const resetTarget = () => {
-  selectedUrl.value = ''
   canvas.value.dispose().then(() => {
     initCanvas()
   })
@@ -176,112 +156,6 @@ const resetTarget = () => {
  */
 const resetMaterials = () => {
   materialList.value = []
-}
-/**
- * 计算颜色差异
- * @param color1 【r,g,b,a】
- * @param color2 【r,g,b,a】
- */
-const colorDiff = (color1: number[], color2: number[]) => {
-  let d = 0
-  for (let i = 0; i < color1.length; i++) {
-    d += (color1[i] - color2[i]) ** 2
-  }
-  return Math.sqrt(d)
-}
-/**
- * 生成图片
- */
-const generateImg = async () => {
-  resetTarget()
-  generating.value = true
-  // 存储每个像素块的颜色差异
-  const diffColorList: IDiffItem[] = []
-  try {
-    for (let i = 0; i < blockList.value.length; i++) {
-      const block = blockList.value[i]
-      // 计算颜色差异
-      const diffs = calculateColorDifferences(block)
-      // 获取颜色差异最小的素材
-      const material = diffs[0]
-      // 创建差异项
-      diffColorList[i] = createDiffItem(block, material)
-      // 添加图片到画布
-      addImageToCanvas(material, block)
-    }
-    blockInfoList.value = diffColorList
-    console.log("🚀 ~ generateImg ~ blockInfoList.value:", blockInfoList.value)
-  } catch (error) {
-    console.error(error)
-  } finally {
-    generating.value = false
-  }
-}
-/**
- * 计算颜色差异并排序
- * @param block 目标像素块
- */
-const calculateColorDifferences = (block: IBlock) => {
-  return materialList.value
-    .map((img) => ({
-      url: img.url,
-      diff: colorDiff(block.color, img.color),
-      color: img.color,
-    }))
-    .sort((a, b) => a.diff - b.diff)
-}
-/**
- * 创建差异项
- * @param block 目标像素块
- * @param material 素材
- */
-const createDiffItem = (block: IBlock, material: IFileObj) => ({
-  position: block.position,
-  url: material.url,
-  targetColor: block.color,
-  materialColor: material.color,
-})
-/**
- * 添加图片到画布
- * @param material 素材
- * @param block 目标像素块
- */
-const addImageToCanvas = async (material: IFileObj, block: IBlock) => {
-  const img = await FabricImage.fromURL(material.url)
-  const scale = img.height > img.width ? blockPixel / img.width : blockPixel / img.height
-  img.set({
-    left: block.position[0] * blockPixel,
-    top: block.position[1] * blockPixel,
-    width: blockPixel / scale,
-    height: blockPixel / scale,
-    scaleX: scale,
-    scaleY: scale,
-    selectable: true,
-    lockMovementX: true,
-    lockMovementY: true,
-  })
-  img.on('selected', () => {
-    selectedUrl.value = material.url
-  })
-  canvas.value.add(img)
-}
-/**
- * 导出图片
- */
-const exportImg = () => {
-  const dataURL = canvas.value.toDataURL({
-    width: canvas.value.width,
-    height: canvas.value.height,
-    left: 0,
-    top: 0,
-    format: 'png',
-  })
-  const link = document.createElement('a')
-  link.download = 'canvas.png'
-  link.href = dataURL
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 /**
  * 初始化canvas
