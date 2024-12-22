@@ -33,6 +33,9 @@ import { Canvas, FabricImage } from 'fabric'
 import { useInputFiles } from '@/hooks/useInputFiles'
 import { getBlockAverageColor, getAverageColor } from '@/utils/averageColor'
 import type { IFileObj, IBlock, IDiffItem } from '@/types/common'
+import { PiniaVuePlugin } from 'pinia'
+
+const dpi = window.devicePixelRatio
 
 /**
  * 像素块大小
@@ -82,10 +85,10 @@ const getCanvasData = async () => {
     for (let X = 0; X < canvas.value.width / blockPixel; X++) {
       //每blockPixel*blockPixel像素的一块区域一组
       const tempColorData: Uint8ClampedArray = ctx.value.getImageData(
-        X * blockPixel,
-        Y * blockPixel,
-        blockPixel,
-        blockPixel,
+        X * blockPixel * dpi,
+        Y * blockPixel * dpi,
+        blockPixel * dpi,
+        blockPixel * dpi,
       ).data
       //获取这一块区域的主色调
       getBlockAverageColor(tempColorData, blockPixel, blockPixel).then((color) => {
@@ -210,7 +213,7 @@ const generateImg = async () => {
       addImageToCanvas(material, block)
     }
     blockInfoList.value = diffColorList
-    console.log("🚀 ~ generateImg ~ blockInfoList.value:", blockInfoList.value)
+    // console.log("🚀 ~ generateImg ~ blockInfoList.value:", blockInfoList.value)
   } catch (error) {
     console.error(error)
   } finally {
@@ -288,6 +291,8 @@ const exportImg = () => {
  */
 const initCanvas = () => {
   canvas.value = new Canvas('canvas', {
+    width: blockPixel * blockCount,
+    height: blockPixel * blockCount,
     isDrawingMode: false, //禁用自由绘画模式
     selectable: true, // 禁用对象的选择功能
     selection: true, // 禁用画布上的选择框
@@ -295,6 +300,7 @@ const initCanvas = () => {
     enableRetinaScaling: true, // 启用高清屏幕支持
   })
   ctx.value = canvas.value.getContext('2d', { willReadFrequently: true })
+
 }
 
 onMounted(() => {
