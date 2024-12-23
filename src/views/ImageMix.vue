@@ -22,7 +22,7 @@
       <button @click="exportImg">导出图片</button>
       <div>
         当前选中：
-        <img v-if="selectedUrl" :src="selectedUrl" alt="当前选中" width="200" />
+        <img v-if="selectedUrl" :src="selectedUrl" alt="当前选中" height="300" />
       </div>
     </div>
   </div>
@@ -33,18 +33,17 @@ import { Canvas, FabricImage } from 'fabric'
 import { useInputFiles } from '@/hooks/useInputFiles'
 import { getBlockAverageColor, getAverageColor } from '@/utils/averageColor'
 import type { IFileObj, IBlock, IDiffItem } from '@/types/common'
-import { PiniaVuePlugin } from 'pinia'
 
 const dpi = window.devicePixelRatio
 
 /**
  * 像素块大小
  */
-const blockPixel = 6
+const blockPixel = 4
 /**
  * 画布分为100*100个像素块
  */
-const blockCount = 100
+const blockCount = 150
 
 /**
  * 是否正在生成
