@@ -13,7 +13,7 @@ export function useInputFiles() {
    */
   const handleAttribute = (inputFile: Element, options: IUploadFilesOptions) => {
     if (options.multiple) {
-      inputFile.setAttribute('multiple', 'multiple')
+      inputFile.setAttribute('multiple', options.multiple.toString())
     } else {
       inputFile.removeAttribute('multiple')
     }
